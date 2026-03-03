@@ -1,0 +1,27 @@
+services:
+  service:
+    build: .
+    environment:
+      GITLAB_URL: http://host.docker.internal:5001
+      GITLAB_PAT: ${GITLAB_PAT:-}
+      GITLAB_PROJECT_ID: ${GITLAB_PROJECT_ID:-1}
+      DATABASE_URL: postgresql+psycopg2://monitor:monitor@postgres:5432/monitor
+      WORKER_COUNT: 4
+      MAX_LLM_CONCURRENT: 2
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: monitor
+      POSTGRES_PASSWORD: monitor
+      POSTGRES_DB: monitor
+    ports:
+      - "5432:5432"
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
