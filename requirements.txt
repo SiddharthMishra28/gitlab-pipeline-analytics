@@ -1,0 +1,6 @@
+Flask==3.0.3
+requests==2.32.3
+SQLAlchemy==2.0.36
+pytest==8.3.3
+fastmcp==2.12.3
+psycopg2-binary==2.9.10
