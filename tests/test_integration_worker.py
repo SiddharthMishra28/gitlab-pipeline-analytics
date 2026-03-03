@@ -5,7 +5,7 @@ from uuid import uuid4
 from flask import Flask, Response, jsonify, request
 from werkzeug.serving import make_server
 
-from monitor_service.db.models import Database, PipelineFailure
+from monitor_service.db.models import Database, PipelineExecution
 from monitor_service.gitlab_client import GitLabClient
 from monitor_service.llm_adapter import HeuristicProvider, LLMAdapter
 from monitor_service.scheduler.locker import InMemoryLocker
@@ -72,18 +72,22 @@ def test_end_to_end_failure_persist(tmp_path):
             "pipelineId": 11,
             "jobIds": [123],
             "jobObserveId": 123,
+            "flowId": 22,
+            "flowStepId": 33,
+            "isReplay": False,
         }
     )
 
     for _ in range(40):
         with db.SessionLocal() as s:
-            row = s.query(PipelineFailure).filter_by(flow_execution_uuid=flow_id).first()
+            row = s.query(PipelineExecution).filter_by(flow_execution_id=flow_id).first()
             if row:
-                assert row.failure_category == "RUNTIME_EXCEPTION"
+                assert row.status == "FAILED"
+                assert row.runtime_test_data["diagnostics"]["failureCategory"] == "RUNTIME_EXCEPTION"
                 break
         time.sleep(0.1)
     else:
-        raise AssertionError("failure row not written")
+        raise AssertionError("pipeline execution row not written")
 
     pool.shutdown()
     server.shutdown()

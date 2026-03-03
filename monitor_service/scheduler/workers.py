@@ -5,8 +5,6 @@ from datetime import datetime, timezone
 
 import requests
 
-from monitor_service.metrics import active_workers, processed_failure_total, processed_success_total
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -46,8 +44,12 @@ class WorkerPool:
 
     def _extract_relevant_excerpt(self, text: str) -> str:
         lines = text.splitlines()
-        err = [ln for ln in lines if any(k in ln.lower() for k in ["error", "exception", "traceback", "failed", "timeout"]) ]
-        chosen = (err[-40:] if err else lines[-40:])
+        err = [
+            ln
+            for ln in lines
+            if any(k in ln.lower() for k in ["error", "exception", "traceback", "failed", "timeout"])
+        ]
+        chosen = err[-40:] if err else lines[-40:]
         excerpt = "\n".join(chosen)
         return excerpt[-self.max_log_chunk_size :]
 
@@ -69,11 +71,9 @@ class WorkerPool:
             if not self.locker.claim(key):
                 self.queue.task_done()
                 continue
-            active_workers.inc()
             try:
                 self._process(payload, worker_id)
             finally:
-                active_workers.dec()
                 self.locker.release(key)
                 self.queue.task_done()
 
@@ -115,11 +115,12 @@ class WorkerPool:
                 "logExcerpt": excerpt,
                 "llmMetadata": cls.llm_metadata,
                 "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                "flowId": payload.get("flowId", 0),
+                "flowStepId": payload.get("flowStepId", 0),
+                "isReplay": payload.get("isReplay", False),
             }
             self.db.save_failure(result)
             self._notify_callback(payload, result)
-            processed_failure_total.inc()
             LOGGER.info("job_failed", extra={"flowExecutionUuid": payload["flowExecutionUuid"], "workerId": worker_id})
         else:
-            processed_success_total.inc()
             LOGGER.info("job_success", extra={"flowExecutionUuid": payload["flowExecutionUuid"], "workerId": worker_id})

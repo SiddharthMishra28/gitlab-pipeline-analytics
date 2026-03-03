@@ -2,7 +2,6 @@ import atexit
 import logging
 
 from flask import Flask, jsonify, request
-from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from monitor_service.config import Config
 from monitor_service.db.models import Database
@@ -71,10 +70,6 @@ def create_app(config_cls=Config):
     @app.get("/health")
     def health():
         return jsonify({"status": "ok"})
-
-    @app.get("/metrics")
-    def metrics():
-        return generate_latest(), 200, {"Content-Type": CONTENT_TYPE_LATEST}
 
     return app
 

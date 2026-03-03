@@ -3,7 +3,7 @@ import threading
 import time
 from uuid import uuid4
 
-from monitor_service.db.models import Database, PipelineFailure
+from monitor_service.db.models import Database, PipelineExecution
 from monitor_service.llm_adapter import BaseProvider, LLMAdapter
 from monitor_service.scheduler.locker import InMemoryLocker
 from monitor_service.scheduler.queue import JobQueue
@@ -66,7 +66,7 @@ def test_llm_concurrency_bounded(tmp_path):
     deadline = time.time() + 6
     while time.time() < deadline:
         with db.SessionLocal() as s:
-            count = s.query(PipelineFailure).count()
+            count = s.query(PipelineExecution).count()
         if count >= 20:
             break
         time.sleep(0.1)

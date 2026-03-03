@@ -4,8 +4,6 @@ import re
 import threading
 from dataclasses import dataclass
 
-from monitor_service.metrics import llm_calls_total, llm_errors_total
-
 SYSTEM_PROMPT = """You are an expert SDET assistant. Given a job log excerpt, classify the root cause into one of these categories:
 FLAKINESS, ASSERTION_ERROR, RUNTIME_EXCEPTION, ENVIRONMENT_ERROR, TIMEOUT, ARTIFACT_MISSING, CONFIG_ERROR, NETWORK_ERROR, OTHER.
 
@@ -92,7 +90,6 @@ class LLMAdapter:
 
         with self.sem:
             for attempt in range(3):
-                llm_calls_total.inc()
                 raw = self.provider.complete_json(SYSTEM_PROMPT, user_prompt, self.token_budget)
                 try:
                     parsed = self._extract_json(raw)
@@ -113,6 +110,5 @@ class LLMAdapter:
                         },
                     )
                 except Exception:
-                    llm_errors_total.inc()
                     user_prompt = user_prompt + "\nReturn valid JSON only."
             raise ValueError("LLM failed to return valid JSON")

@@ -3,8 +3,6 @@ from dataclasses import dataclass
 
 import requests
 
-from monitor_service.metrics import gitlab_api_calls_total, gitlab_api_rate_limited_total
-
 
 @dataclass
 class TailResult:
@@ -25,11 +23,8 @@ class GitLabClient:
         url = f"{self.base_url}{path}"
         backoff = 0.25
         for _ in range(5):
-            gitlab_api_calls_total.inc()
             response = self.session.request(method, url, timeout=self.timeout, **kwargs)
             if response.status_code in (429, 500, 502, 503, 504):
-                if response.status_code == 429:
-                    gitlab_api_rate_limited_total.inc()
                 retry_after = response.headers.get("Retry-After")
                 sleep_for = float(retry_after) if retry_after else backoff
                 time.sleep(sleep_for)
